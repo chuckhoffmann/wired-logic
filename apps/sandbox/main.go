@@ -12,6 +12,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/martinkirsche/wired-logic/simulation"
+	//"/home/chuck/go/src/wired-logic/simulation"
 )
 
 var (
@@ -31,6 +32,10 @@ var (
 		ebiten.KeyLeft:  0,
 		ebiten.KeyRight: 0,
 		ebiten.KeySpace: 0,
+		ebiten.KeyW:     0,
+		ebiten.KeyA:     0,
+		ebiten.KeyS:     0,
+		ebiten.KeyD:     0,
 	}
 )
 
@@ -68,11 +73,11 @@ func main() {
 			color.Black,
 			color.RGBA{0x88, 0, 0, 0xFF},
 			color.RGBA{0xFF, 0, 0, 0xFF},
-			color.RGBA{0xFF, 0x22, 0, 0xFF},
-			color.RGBA{0xFF, 0x44, 0, 0xFF},
-			color.RGBA{0xFF, 0x66, 0, 0xFF},
-			color.RGBA{0xFF, 0x88, 0, 0xFF},
-			color.RGBA{0xFF, 0xAA, 0, 0xFF},
+			color.RGBA{0xFF, 0, 0x22, 0xFF},
+			color.RGBA{0xFF, 0, 0x44, 0xFF},
+			color.RGBA{0xFF, 0, 0x66, 0xFF},
+			color.RGBA{0xFF, 0, 0x88, 0xFF},
+			color.RGBA{0xFF, 0, 0xAA, 0xFF},
 		}
 		simulationImage = image.NewPaletted(image.Rect(0, 0, width, height), p)
 	}
@@ -141,16 +146,20 @@ func handleCursor(screen *ebiten.Image) error {
 	} else {
 		const cursorInterval = 6
 		switch {
-		case keyStates[ebiten.KeyUp]%cursorInterval == 0:
+		case keyStates[ebiten.KeyUp]%cursorInterval == 0 ||
+			keyStates[ebiten.KeyW]%cursorInterval == 0:
 			cursorPosition = cursorPosition.Add(image.Point{0, -1})
 			cursorMoved = true
-		case keyStates[ebiten.KeyDown]%cursorInterval == 0:
+		case keyStates[ebiten.KeyDown]%cursorInterval == 0 ||
+			keyStates[ebiten.KeyS]%cursorInterval == 0:
 			cursorPosition = cursorPosition.Add(image.Point{0, +1})
 			cursorMoved = true
-		case keyStates[ebiten.KeyLeft]%cursorInterval == 0:
+		case keyStates[ebiten.KeyLeft]%cursorInterval == 0 ||
+			keyStates[ebiten.KeyA]%cursorInterval == 0:
 			cursorPosition = cursorPosition.Add(image.Point{-1, 0})
 			cursorMoved = true
-		case keyStates[ebiten.KeyRight]%cursorInterval == 0:
+		case keyStates[ebiten.KeyRight]%cursorInterval == 0 ||
+			keyStates[ebiten.KeyD]%cursorInterval == 0:
 			cursorPosition = cursorPosition.Add(image.Point{+1, 0})
 			cursorMoved = true
 		}
