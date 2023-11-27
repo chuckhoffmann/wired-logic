@@ -12,7 +12,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/martinkirsche/wired-logic/simulation"
-	//"/home/chuck/go/src/wired-logic/simulation"
 )
 
 var (
@@ -36,7 +35,9 @@ var (
 		ebiten.KeyA:     0,
 		ebiten.KeyS:     0,
 		ebiten.KeyD:     0,
+		ebiten.KeyP:     0,
 	}
+	simulationPaused = false
 )
 
 func main() {
@@ -196,9 +197,15 @@ func handleCursor(screen *ebiten.Image) error {
 
 func update(screen *ebiten.Image) error {
 	readKeys()
+	if keyStates[ebiten.KeyP] == 0 {
+		simulationPaused = !simulationPaused
+	}
 	select {
 	case <-simulationTimer:
-		newSimulation := currentSimulation.Step()
+		newSimulation := currentSimulation
+		if !simulationPaused {
+			newSimulation = currentSimulation.Step()
+		}
 		wires := currentSimulation.Circuit().Wires()
 		for i, wire := range wires {
 			oldCharge := currentSimulation.State(wire).Charge()
