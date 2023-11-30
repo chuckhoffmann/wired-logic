@@ -139,6 +139,8 @@ func readKeys() {
 }
 
 func handleCursor(screen *ebiten.Image) error {
+	// TODO: This is a hack to get the cursor position. It should be possible to
+	// get the cursor position directly from ebiten.
 	mx, my := ebiten.CursorPosition()
 	cursorMoved := image.Point{mx, my}.In(screen.Bounds()) && (mx != oldMouseCursorPosition.X || my != oldMouseCursorPosition.Y)
 	oldMouseCursorPosition = image.Point{mx, my}
