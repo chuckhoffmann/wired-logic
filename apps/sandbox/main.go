@@ -172,6 +172,7 @@ func handleCursor(screen *ebiten.Image) error {
 	} else {
 		cursorBlinking++
 	}
+	// Set the image draw option for the cursor.
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(0.25, .25)
 	op.GeoM.Translate(float64(cursorPosition.X), float64(cursorPosition.Y))
@@ -180,9 +181,12 @@ func handleCursor(screen *ebiten.Image) error {
 	} else {
 		op.ColorM.Scale(1, 1, 1, 0.25+float64(cursorBlinking)/255.0)
 	}
+	// Draw the cursor.
 	if err := screen.DrawImage(cursorImage, op); err != nil {
 		return err
 	}
+	// Toggle the pixel if the space key is pressed or the left mouse button is
+	// pressed.
 	if keyStates[ebiten.KeySpace] >= 0 ||
 		ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		if cursorMoved || !wasMouseButtonPressed {
@@ -235,6 +239,13 @@ func update(screen *ebiten.Image) error {
 	if err := handleCursor(screen); err != nil {
 		return err
 	}
+
+	// if the s key is pressed, save the current simulation to a gif file.
+	if keyStates[ebiten.KeyS] == 0 {
+		if err := saveImage(simulationImage, "simulation.gif"); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -248,4 +259,13 @@ func drawMask(wire *simulation.Wire) image.Image {
 		img.SetRGBA(pixel.X-position.X, pixel.Y-position.Y, white)
 	}
 	return img
+}
+
+func saveImage(img image.Image, filename string) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return gif.Encode(f, img, nil)
 }
