@@ -36,16 +36,19 @@ var (
 		ebiten.KeyS:     0,
 		ebiten.KeyD:     0,
 		ebiten.KeyP:     0,
+		ebiten.KeyF:	 0,
 	}
-	simulationPaused = false
+	simulationPaused 		= false
 )
 
 func main() {
 	var err error
+	// Create a 4x4 image for the cursor and fill it with white.
 	if cursorImage, err = ebiten.NewImage(4, 4, ebiten.FilterNearest); err != nil {
 		log.Fatal(err)
 	}
 	cursorImage.Fill(color.White)
+	// Parse the command line flags, then the gif file name, if supplied.
 	var speed, scale, width, height int
 	flag.IntVar(&speed, "speed", 15, "simulation steps per second")
 	flag.IntVar(&scale, "scale", 16, "pixel scale factor")
@@ -53,9 +56,12 @@ func main() {
 	flag.IntVar(&height, "height", 64, "height of the simulation")
 	flag.Parse()
 	flag.Args()
-
+	// Set the cursor position to the center of the screen.
 	cursorPosition = image.Point{width / 2, height / 2}
+	// Calculate the time between simulation steps.
 	simulationTimer = time.Tick(time.Second / time.Duration(speed))
+	// If a gif file name is supplied, load the gif file and use the
+	// first frame as the simulation image.
 	if flag.NArg() == 1 {
 		inputFileName := flag.Arg(0)
 		in, err := os.Open(inputFileName)
@@ -70,16 +76,18 @@ func main() {
 		simulationImage = gifImage.Image[0]
 		simulationImage.Palette[0] = color.Transparent
 	} else {
+		// Create a new palette.
 		p := color.Palette{
 			color.Black,
 			color.RGBA{0x88, 0, 0, 0xFF},
 			color.RGBA{0xFF, 0, 0, 0xFF},
 			color.RGBA{0xFF, 0x22, 0, 0xFF},
-			color.RGBA{0xFF, 0x44, 0,  0xFF},
-			color.RGBA{0xFF, 0x66, 0,  0xFF},
+			color.RGBA{0xFF, 0x44, 0, 0xFF},
+			color.RGBA{0xFF, 0x66, 0, 0xFF},
 			color.RGBA{0xFF, 0x88, 0, 0xFF},
 			color.RGBA{0xFF, 0xAA, 0,  0xFF},
 		}
+		// Create a new image for the simulation. using the palette.
 		simulationImage = image.NewPaletted(image.Rect(0, 0, width, height), p)
 	}
 	reloadSimulation()
@@ -89,6 +97,7 @@ func main() {
 }
 
 func reloadSimulation() error {
+	// If there is a change in the simulation image, create a new simulation.
 	currentSimulation = simulation.New(simulationImage)
 	currentSimulation.Draw(simulationImage)
 	var err error
@@ -96,11 +105,14 @@ func reloadSimulation() error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Dispose the old wire images.
 	for _, img := range wireImages {
 		if err = img.Dispose(); err != nil {
 			return err
 		}
 	}
+	// Get the wires from the circuit and create an image for each wire.
 	wires := currentSimulation.Circuit().Wires()
 	wireImages = make([]*ebiten.Image, len(wires))
 	for i, wire := range wires {
@@ -139,8 +151,7 @@ func readKeys() {
 }
 
 func handleCursor(screen *ebiten.Image) error {
-	// TODO: This is a hack to get the cursor position. It should be possible to
-	// get the cursor position directly from ebiten.
+	// Get the mouse cursor position.
 	mx, my := ebiten.CursorPosition()
 	cursorMoved := image.Point{mx, my}.In(screen.Bounds()) && (mx != oldMouseCursorPosition.X || my != oldMouseCursorPosition.Y)
 	oldMouseCursorPosition = image.Point{mx, my}
@@ -203,15 +214,16 @@ func handleCursor(screen *ebiten.Image) error {
 
 func update(screen *ebiten.Image) error {
 	readKeys()
-	if keyStates[ebiten.KeyP] == 0 {
-		simulationPaused = !simulationPaused
-	}
+
 	select {
 	case <-simulationTimer:
-		newSimulation := currentSimulation
+		var newSimulation *simulation.Simulation
 		if !simulationPaused {
 			newSimulation = currentSimulation.Step()
+		} else {
+			newSimulation = currentSimulation
 		}
+		// Draw the wires that have changed.
 		wires := currentSimulation.Circuit().Wires()
 		for i, wire := range wires {
 			oldCharge := currentSimulation.State(wire).Charge()
@@ -231,17 +243,22 @@ func update(screen *ebiten.Image) error {
 		currentSimulation = newSimulation
 	default:
 	}
-
+	// Draw the background image.
 	if err := screen.DrawImage(backgroundImage, &ebiten.DrawImageOptions{}); err != nil {
 		return err
 	}
-
+	// Draw the cursor.
 	if err := handleCursor(screen); err != nil {
 		return err
 	}
 
-	// if the s key is pressed, save the current simulation to a gif file.
-	if keyStates[ebiten.KeyS] == 0 {
+	// If the P key is pressed, pause the simulation.
+	if keyStates[ebiten.KeyP] == 0 {
+		simulationPaused = !simulationPaused
+	}
+
+	// if the F key is pressed, save the current simulation to a gif file.
+	if keyStates[ebiten.KeyF] == 0 {
 		if err := saveImage(simulationImage, "simulation.gif"); err != nil {
 			return err
 		}
@@ -250,6 +267,7 @@ func update(screen *ebiten.Image) error {
 }
 
 func drawMask(wire *simulation.Wire) image.Image {
+	// Draw a mask for the wire.
 	bounds := image.Rect(0, 0, wire.Bounds().Dx(), wire.Bounds().Dy())
 	bounds = bounds.Union(image.Rect(0, 0, 4, 4))
 	position := wire.Bounds().Min

@@ -19,4 +19,5 @@ The playground can be configured using command line options.
 - `-height` sets the height of the playground in pixels.
 - `-scale` sets the scale of the playground in pixels per pixel.
 - `-speed` sets the speed of the simulation in frames per second.
-After the options, the path to a GIF image can be specified, e.g. `gif_to_load.gif`. If no path is specified the playground will start with a blank canvas.
+
+After the options, the path to a GIF image can be specified, e.g. `gif_to_load.gif`. If no path is specified the playground will start with a blank canvas and a default palette.
