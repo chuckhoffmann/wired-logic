@@ -15,7 +15,7 @@ func main() {
 
 	var startFrame int
 	var frameCount int
-	flag.IntVar(&startFrame, "start", 0, "frame at wich the animation should start")
+	flag.IntVar(&startFrame, "start", 0, "frame at which the animation should start")
 	flag.IntVar(&frameCount, "count", 0, "amount of frames the animation should have")
 	flag.Parse()
 	inputFileName := flag.Arg(0)
