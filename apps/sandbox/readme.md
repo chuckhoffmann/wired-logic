@@ -6,7 +6,7 @@ Controls
 --------
 Move the mouse or press either the arrow keys or `WASD` to move the cursor.
 
-Clicking the left mouse button or pressing `Space` will flip the state of the pixel under the cursor.
+Clicking the left mouse button or pressing `Space` will flip the state of (i. e. draw or erase) the pixel under the cursor. 
 
 Pressing `P` will toggle the pause state of the simulation.
 
