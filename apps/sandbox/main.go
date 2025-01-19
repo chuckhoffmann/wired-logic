@@ -37,6 +37,7 @@ var (
 		ebiten.KeyD:     0,
 		ebiten.KeyP:     0,
 		ebiten.KeyF:	 0,
+		ebiten.KeyR:	 0,
 	}
 	simulationPaused 		= false
 )
@@ -252,17 +253,37 @@ func update(screen *ebiten.Image) error {
 		return err
 	}
 
-	// If the P key is pressed, pause the simulation.
+	// If the P key is pressed, pause/unpause the simulation.
 	if keyStates[ebiten.KeyP] == 0 {
 		simulationPaused = !simulationPaused
+		
 	}
 
 	// if the F key is pressed, save the current simulation to a gif file.
 	if keyStates[ebiten.KeyF] == 0 {
-		if err := saveImage(simulationImage, "simulation.gif"); err != nil {
+		gifFileName := fmt.Sprintf("simulation-%d.gif", time.Now().Unix())
+		// Create a dialog box to get the file name.
+		// Save the simulation to the gif file.
+		if err := saveImage(simulationImage, gifFileName); err != nil {
 			return err
 		}
 	}
+
+	// If the R key is pressed, pause the simulation, set all
+	// pixels that belong to a wire to index 1, and reload the simulation.
+	if keyStates[ebiten.KeyR] == 0 {
+		simulationPaused = true
+		currentSimulation.Draw(simulationImage)
+		for _, wire := range currentSimulation.Circuit().Wires() {
+			for _, pixel := range wire.Pixels() {
+				simulationImage.SetColorIndex(pixel.X, pixel.Y, 1)
+			}
+		}
+		if err := reloadSimulation(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
