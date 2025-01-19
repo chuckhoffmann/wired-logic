@@ -12,7 +12,7 @@ Pressing `P` will toggle the pause state of the simulation.
 
 Pressing `F` will save the current state of the simulation as a GIF image.
 
-Pressing `R` will pause and reset the simulation, setting all pixels to a powered off state. You munst press `P` to resume the simulation.
+Pressing `R` will pause and reset the simulation, setting all pixels to a powered off state. You must press `P` to resume the simulation.
 
 Command line options
 --------------------
