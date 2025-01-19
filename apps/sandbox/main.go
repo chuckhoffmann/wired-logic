@@ -262,7 +262,7 @@ func update(screen *ebiten.Image) error {
 	// if the F key is pressed, save the current simulation to a gif file.
 	if keyStates[ebiten.KeyF] == 0 {
 		gifFileName := fmt.Sprintf("simulation-%d.gif", time.Now().Unix())
-		// Create a dialog box to get the file name.
+		// TODO: Create a dialog box to get the file name.
 		// Save the simulation to the gif file.
 		if err := saveImage(simulationImage, gifFileName); err != nil {
 			return err
