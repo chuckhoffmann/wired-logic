@@ -36,10 +36,10 @@ var (
 		ebiten.KeyS:     0,
 		ebiten.KeyD:     0,
 		ebiten.KeyP:     0,
-		ebiten.KeyF:	 0,
-		ebiten.KeyR:	 0,
+		ebiten.KeyF:     0,
+		ebiten.KeyR:     0,
 	}
-	simulationPaused 		= false
+	simulationPaused = false
 )
 
 func main() {
@@ -86,7 +86,7 @@ func main() {
 			color.RGBA{0xFF, 0x44, 0, 0xFF},
 			color.RGBA{0xFF, 0x66, 0, 0xFF},
 			color.RGBA{0xFF, 0x88, 0, 0xFF},
-			color.RGBA{0xFF, 0xAA, 0,  0xFF},
+			color.RGBA{0xFF, 0xAA, 0, 0xFF},
 		}
 		// Create a new image for the simulation. using the palette.
 		simulationImage = image.NewPaletted(image.Rect(0, 0, width, height), p)
@@ -141,7 +141,7 @@ func togglePixel(position image.Point) error {
 }
 
 func readKeys() {
-	for key, _ := range keyStates {
+	for key := range keyStates {
 		if !ebiten.IsKeyPressed(key) {
 			keyStates[key] = -1
 			continue
@@ -256,7 +256,7 @@ func update(screen *ebiten.Image) error {
 	// If the P key is pressed, pause/unpause the simulation.
 	if keyStates[ebiten.KeyP] == 0 {
 		simulationPaused = !simulationPaused
-		
+
 	}
 
 	// if the F key is pressed, save the current simulation to a gif file.
