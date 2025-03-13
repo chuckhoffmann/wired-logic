@@ -42,30 +42,32 @@ var (
 	simulationPaused = false
 )
 
+type Config struct {
+	speed       int
+	scale       int
+	width       int
+	height      int
+	gifFileName string
+}
+
 func main() {
-	var err error
-	// Create a 4x4 image for the cursor and fill it with white.
-	if cursorImage, err = ebiten.NewImage(4, 4, ebiten.FilterNearest); err != nil {
-		log.Fatal(err)
-	}
-	cursorImage.Fill(color.White)
-	// Parse the command line flags, then the gif file name, if supplied.
-	var speed, scale, width, height int
-	flag.IntVar(&speed, "speed", 15, "simulation steps per second")
-	flag.IntVar(&scale, "scale", 16, "pixel scale factor")
-	flag.IntVar(&width, "width", 64, "width of the simulation")
-	flag.IntVar(&height, "height", 64, "height of the simulation")
-	flag.Parse()
-	flag.Args()
+
+	// Parse the command line flags and arguments.
+	config := parseCommandLineArgs()
+
+	// Initialize the cursor.
+	initializeCursor()
+
 	// Set the cursor position to the center of the screen.
-	cursorPosition = image.Point{width / 2, height / 2}
+	cursorPosition = image.Point{config.width / 2, config.height / 2}
+
 	// Calculate the time between simulation steps.
-	simulationTimer = time.Tick(time.Second / time.Duration(speed))
+	simulationTimer = time.Tick(time.Second / time.Duration(config.speed))
+
 	// If a gif file name is supplied, load the gif file and use the
 	// first frame as the simulation image.
-	if flag.NArg() == 1 {
-		inputFileName := flag.Arg(0)
-		in, err := os.Open(inputFileName)
+	if config.gifFileName != "" {
+		in, err := os.Open(config.gifFileName)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -89,12 +91,39 @@ func main() {
 			color.RGBA{0xFF, 0xAA, 0, 0xFF},
 		}
 		// Create a new image for the simulation. using the palette.
-		simulationImage = image.NewPaletted(image.Rect(0, 0, width, height), p)
+		simulationImage = image.NewPaletted(image.Rect(0, 0, config.width, config.height), p)
 	}
 	reloadSimulation()
-	if err := ebiten.Run(update, simulationImage.Bounds().Dx(), simulationImage.Bounds().Dy(), float64(scale), "Wired Logic"); err != nil {
+	if err := ebiten.Run(update, simulationImage.Bounds().Dx(), simulationImage.Bounds().Dy(), float64(config.scale), "Wired Logic"); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func initializeCursor() {
+	var err error
+	// Create a 4x4 image for the cursor and fill it with white.
+	if cursorImage, err = ebiten.NewImage(4, 4, ebiten.FilterNearest); err != nil {
+		log.Fatal(err)
+	}
+	cursorImage.Fill(color.White)
+}
+
+func parseCommandLineArgs() Config {
+	var config Config
+
+	flag.IntVar(&config.speed, "speed", 15, "simulation steps per second")
+	flag.IntVar(&config.scale, "scale", 16, "pixel scale factor")
+	flag.IntVar(&config.width, "width", 64, "width of the simulation")
+	flag.IntVar(&config.height, "height", 64, "height of the simulation")
+	flag.Parse()
+	flag.Args()
+
+	// If there is an argument, it is the gif file name. Set the gif file name in the config.
+	if flag.NArg() == 1 {
+		config.gifFileName = flag.Arg(0)
+	}
+
+	return config
 }
 
 func reloadSimulation() error {
