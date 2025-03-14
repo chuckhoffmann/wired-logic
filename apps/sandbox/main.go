@@ -53,7 +53,11 @@ type Config struct {
 func main() {
 
 	// Parse the command line flags and arguments.
-	config := parseCommandLineArgs()
+	config, err := parseCommandLineArgs()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	// Initialize the cursor.
 	initializeCursor()
@@ -108,22 +112,42 @@ func initializeCursor() {
 	cursorImage.Fill(color.White)
 }
 
-func parseCommandLineArgs() Config {
+func parseCommandLineArgs() (Config, error) {
+	// Parse the command line flags.
 	var config Config
+	var err error
 
 	flag.IntVar(&config.speed, "speed", 15, "simulation steps per second")
 	flag.IntVar(&config.scale, "scale", 16, "pixel scale factor")
 	flag.IntVar(&config.width, "width", 64, "width of the simulation")
 	flag.IntVar(&config.height, "height", 64, "height of the simulation")
-	flag.Parse()
-	flag.Args()
 
-	// If there is an argument, it is the gif file name. Set the gif file name in the config.
-	if flag.NArg() == 1 {
-		config.gifFileName = flag.Arg(0)
+	flag.Parse()
+	// flag.Args()
+
+	if config.speed > 60 {
+		err = fmt.Errorf("speed must be less than or equal to 60")
 	}
 
-	return config
+	// If there is an argument, it should be the gif file name. Set the gif file name in the config.
+	if flag.NArg() == 1 {
+		filename := flag.Arg(0)
+
+		// Check if the filename ends with .gif.
+		if len(filename) < 4 || filename[len(filename)-4:] != ".gif" {
+			err = fmt.Errorf("file %s does not end with .gif", filename)
+
+		}
+
+		// Check if the file exists.
+		if _, err := os.Stat(filename); os.IsNotExist(err) {
+			err = fmt.Errorf("file %s does not exist", filename)
+		}
+
+		config.gifFileName = filename
+	}
+
+	return config, err
 }
 
 func reloadSimulation() error {
