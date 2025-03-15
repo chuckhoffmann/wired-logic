@@ -22,4 +22,9 @@ The playground can be configured using command line options. Any option not spec
 - `-scale` sets the scale of the playground in pixels per pixel. Default is 16.
 - `-speed` sets the speed of the simulation in frames per second. Default is 15
 
-After the options, the path to a GIF image can be specified, e.g. `gif_to_load.gif`. If no path is specified the playground will start with a blank canvas and a default palette.
+After the options, the path to a GIF image can be specified, e.g. `gif_to_load.gif`. If no path is specified the playground will start with a blank canvas and a default palette. The filename *must* end with `.gif` and appear *after* the other options. Additionally, the height and width of the GIF will override the `-width` and `-height` options.
+
+Here is an example of how to run the playground with custom options and a GIF image:
+```
+go run main.go -width 32 -height 32 -scale 16 -speed 30 gif_to_load.gif
+```
