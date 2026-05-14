@@ -52,6 +52,26 @@ type Config struct {
 	gifFileName string
 }
 
+const (
+	cursorInitialDelayTicks = 8
+	cursorRepeatTicks       = 3
+	cursorBlinkCycle        = 128
+	cursorBlinkMidpoint     = 64
+)
+
+func keyRepeatTriggered(pressCount int) bool {
+	if pressCount < 0 {
+		return false
+	}
+	if pressCount == 0 {
+		return true
+	}
+	if pressCount < cursorInitialDelayTicks {
+		return false
+	}
+	return (pressCount-cursorInitialDelayTicks)%cursorRepeatTicks == 0
+}
+
 func main() {
 
 	// Parse the command line flags and arguments.
@@ -209,42 +229,39 @@ func readKeys() {
 func handleCursor(screen *ebiten.Image) error {
 	// Get the mouse cursor position.
 	mx, my := ebiten.CursorPosition()
-	cursorMoved := image.Point{mx, my}.In(screen.Bounds()) && (mx != oldMouseCursorPosition.X || my != oldMouseCursorPosition.Y)
-	oldMouseCursorPosition = image.Point{mx, my}
+	mousePosition := image.Point{mx, my}
+	mouseMoved := mx != oldMouseCursorPosition.X || my != oldMouseCursorPosition.Y
+	cursorMoved := mousePosition.In(screen.Bounds()) && mouseMoved
+	oldMouseCursorPosition = mousePosition
 	if cursorMoved {
 		cursorPosition = oldMouseCursorPosition
 	} else {
-		const cursorInterval = 6
 		switch {
-		case keyStates[ebiten.KeyUp]%cursorInterval == 0 ||
-			keyStates[ebiten.KeyW]%cursorInterval == 0:
+		case keyRepeatTriggered(keyStates[ebiten.KeyUp]) ||
+			keyRepeatTriggered(keyStates[ebiten.KeyW]):
 			cursorPosition = cursorPosition.Add(image.Point{0, -1})
 			cursorMoved = true
-		case keyStates[ebiten.KeyDown]%cursorInterval == 0 ||
-			keyStates[ebiten.KeyS]%cursorInterval == 0:
+		case keyRepeatTriggered(keyStates[ebiten.KeyDown]) ||
+			keyRepeatTriggered(keyStates[ebiten.KeyS]):
 			cursorPosition = cursorPosition.Add(image.Point{0, +1})
 			cursorMoved = true
-		case keyStates[ebiten.KeyLeft]%cursorInterval == 0 ||
-			keyStates[ebiten.KeyA]%cursorInterval == 0:
+		case keyRepeatTriggered(keyStates[ebiten.KeyLeft]) ||
+			keyRepeatTriggered(keyStates[ebiten.KeyA]):
 			cursorPosition = cursorPosition.Add(image.Point{-1, 0})
 			cursorMoved = true
-		case keyStates[ebiten.KeyRight]%cursorInterval == 0 ||
-			keyStates[ebiten.KeyD]%cursorInterval == 0:
+		case keyRepeatTriggered(keyStates[ebiten.KeyRight]) ||
+			keyRepeatTriggered(keyStates[ebiten.KeyD]):
 			cursorPosition = cursorPosition.Add(image.Point{+1, 0})
 			cursorMoved = true
 		}
 	}
-	if cursorBlinking == 127 {
-		cursorBlinking = 0
-	} else {
-		cursorBlinking++
-	}
+	cursorBlinking = (cursorBlinking + 1) % cursorBlinkCycle
 	// Set the image draw option for the cursor.
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(0.25, .25)
+	op.GeoM.Scale(0.25, 0.25)
 	op.GeoM.Translate(float64(cursorPosition.X), float64(cursorPosition.Y))
-	if cursorBlinking > 64 {
-		op.ColorM.Scale(1, 1, 1, 0.25+float64(127-cursorBlinking)/255.0)
+	if cursorBlinking > cursorBlinkMidpoint {
+		op.ColorM.Scale(1, 1, 1, 0.25+float64(cursorBlinkCycle-1-cursorBlinking)/255.0)
 	} else {
 		op.ColorM.Scale(1, 1, 1, 0.25+float64(cursorBlinking)/255.0)
 	}
