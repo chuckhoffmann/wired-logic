@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"image"
@@ -8,6 +9,7 @@ import (
 	"image/gif"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hajimehoshi/ebiten"
@@ -113,41 +115,41 @@ func initializeCursor() {
 }
 
 func parseCommandLineArgs() (Config, error) {
-	// Parse the command line flags.
 	var config Config
-	var err error
 
 	flag.IntVar(&config.speed, "speed", 15, "simulation steps per second")
 	flag.IntVar(&config.scale, "scale", 16, "pixel scale factor")
 	flag.IntVar(&config.width, "width", 64, "width of the simulation")
 	flag.IntVar(&config.height, "height", 64, "height of the simulation")
-
 	flag.Parse()
-	// flag.Args()
 
-	if config.speed > 60 {
-		err = fmt.Errorf("speed must be less than or equal to 60")
+	if config.speed < 1 || config.speed > 60 {
+		return config, fmt.Errorf("speed must be between 1 and 60")
 	}
 
-	// If there is an argument, it should be the gif file name. Set the gif file name in the config.
-	if flag.NArg() == 1 {
-		filename := flag.Arg(0)
-
-		// Check if the filename ends with .gif.
-		if len(filename) < 4 || filename[len(filename)-4:] != ".gif" {
-			err = fmt.Errorf("file %s does not end with .gif", filename)
-
-		}
-
-		// Check if the file exists.
-		if _, err := os.Stat(filename); os.IsNotExist(err) {
-			err = fmt.Errorf("file %s does not exist", filename)
-		}
-
-		config.gifFileName = filename
+	if flag.NArg() > 1 {
+		return config, fmt.Errorf("too many arguments")
 	}
 
-	return config, err
+	if flag.NArg() == 0 {
+		return config, nil
+	}
+
+	filename := flag.Arg(0)
+
+	if filepath.Ext(filename) != ".gif" {
+		return config, fmt.Errorf("file %s does not end with .gif", filename)
+	}
+
+	if _, err := os.Stat(filename); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return config, fmt.Errorf("file %s does not exist", filename)
+		}
+		return config, fmt.Errorf("cannot access file %s: %w", filename, err)
+	}
+
+	config.gifFileName = filename
+	return config, nil
 }
 
 func reloadSimulation() error {
