@@ -90,39 +90,58 @@ func main() {
 	// Calculate the time between simulation steps.
 	simulationTimer = time.Tick(time.Second / time.Duration(config.speed))
 
-	// If a gif file name is supplied, load the gif file and use the
-	// first frame as the simulation image.
+	// If a gif file name is supplied, create the simulation image from the gif file.
+	//  Otherwise, create a new simulation image.
 	if config.gifFileName != "" {
-		in, err := os.Open(config.gifFileName)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		gifImage, err := gif.DecodeAll(in)
+		simulationImage, err = createSimulationImageFromGif(config.gifFileName)
 		if err != nil {
 			log.Fatal(err)
 		}
-		simulationImage = gifImage.Image[0]
-		simulationImage.Palette[0] = color.Transparent
 	} else {
-		// Create a new palette.
-		p := color.Palette{
-			color.Black,
-			color.RGBA{0x88, 0, 0, 0xFF},
-			color.RGBA{0xFF, 0, 0, 0xFF},
-			color.RGBA{0xFF, 0x22, 0, 0xFF},
-			color.RGBA{0xFF, 0x44, 0, 0xFF},
-			color.RGBA{0xFF, 0x66, 0, 0xFF},
-			color.RGBA{0xFF, 0x88, 0, 0xFF},
-			color.RGBA{0xFF, 0xAA, 0, 0xFF},
-		}
-		// Create a new image for the simulation using the palette.
-		simulationImage = image.NewPaletted(image.Rect(0, 0, config.width, config.height), p)
+		simulationImage = createNewSimulationImage(config.width, config.height)
 	}
+
 	reloadSimulation()
 	if err := ebiten.Run(update, simulationImage.Bounds().Dx(), simulationImage.Bounds().Dy(), float64(config.scale), "Wired Logic"); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func createSimulationImageFromGif(filename string) (*image.Paletted, error) {
+	in, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("open gif %s: %w", filename, err)
+	}
+	defer in.Close()
+	gifImage, err := gif.DecodeAll(in)
+	if err != nil {
+		return nil, fmt.Errorf("decode gif %s: %w", filename, err)
+	}
+	if len(gifImage.Image) == 0 {
+		return nil, fmt.Errorf("gif %s contains no frames", filename)
+	}
+
+	firstFrame := gifImage.Image[0]
+	if len(firstFrame.Palette) > 0 {
+		firstFrame.Palette[0] = color.Transparent
+	}
+
+	return firstFrame, nil
+}
+
+func createNewSimulationImage(width, height int) *image.Paletted {
+	// Create a new palette.
+	p := color.Palette{
+		color.Black,
+		color.RGBA{0x88, 0, 0, 0xFF},
+		color.RGBA{0xFF, 0, 0, 0xFF},
+		color.RGBA{0xFF, 0x22, 0, 0xFF},
+		color.RGBA{0xFF, 0x44, 0, 0xFF},
+		color.RGBA{0xFF, 0x66, 0, 0xFF},
+		color.RGBA{0xFF, 0x88, 0, 0xFF},
+		color.RGBA{0xFF, 0xAA, 0, 0xFF},
+	}
+	return image.NewPaletted(image.Rect(0, 0, width, height), p)
 }
 
 func initializeCursor() {
