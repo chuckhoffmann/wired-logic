@@ -77,8 +77,7 @@ func main() {
 	// Parse the command line flags and arguments.
 	config, err := parseCommandLineArgs()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	// Initialize the cursor.
@@ -98,10 +97,16 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		simulationImage = createNewSimulationImage(config.width, config.height)
+		simulationImage, err = createNewSimulationImage(config.width, config.height)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	reloadSimulation()
+	if err := reloadSimulation(); err != nil {
+		log.Fatal(err)
+	}
+	
 	if err := ebiten.Run(update, simulationImage.Bounds().Dx(), simulationImage.Bounds().Dy(), float64(config.scale), "Wired Logic"); err != nil {
 		log.Fatal(err)
 	}
@@ -129,7 +134,7 @@ func createSimulationImageFromGif(filename string) (*image.Paletted, error) {
 	return firstFrame, nil
 }
 
-func createNewSimulationImage(width, height int) *image.Paletted {
+func createNewSimulationImage(width, height int) (*image.Paletted, error) {
 	// Create a new palette.
 	p := color.Palette{
 		color.Black,
@@ -141,7 +146,7 @@ func createNewSimulationImage(width, height int) *image.Paletted {
 		color.RGBA{0xFF, 0x88, 0, 0xFF},
 		color.RGBA{0xFF, 0xAA, 0, 0xFF},
 	}
-	return image.NewPaletted(image.Rect(0, 0, width, height), p)
+	return image.NewPaletted(image.Rect(0, 0, width, height), p), nil
 }
 
 func initializeCursor() {
