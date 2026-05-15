@@ -116,7 +116,7 @@ func main() {
 			color.RGBA{0xFF, 0x88, 0, 0xFF},
 			color.RGBA{0xFF, 0xAA, 0, 0xFF},
 		}
-		// Create a new image for the simulation. using the palette.
+		// Create a new image for the simulation using the palette.
 		simulationImage = image.NewPaletted(image.Rect(0, 0, config.width, config.height), p)
 	}
 	reloadSimulation()
