@@ -40,6 +40,7 @@ var (
 		ebiten.KeyP:     0,
 		ebiten.KeyF:     0,
 		ebiten.KeyR:     0,
+		ebiten.KeyZ:     0,
 	}
 	simulationPaused = false
 )
@@ -106,7 +107,7 @@ func main() {
 	if err := reloadSimulation(); err != nil {
 		log.Fatal(err)
 	}
-	
+
 	if err := ebiten.Run(update, simulationImage.Bounds().Dx(), simulationImage.Bounds().Dy(), float64(config.scale), "Wired Logic"); err != nil {
 		log.Fatal(err)
 	}
@@ -311,6 +312,9 @@ func handleCursor(screen *ebiten.Image) error {
 
 func update(screen *ebiten.Image) error {
 	readKeys()
+	if err := applyHotkeys(); err != nil {
+		return err
+	}
 
 	select {
 	case <-simulationTimer:
@@ -349,38 +353,53 @@ func update(screen *ebiten.Image) error {
 		return err
 	}
 
-	// If the P key is pressed, pause/unpause the simulation.
+	return nil
+}
+
+func applyHotkeys() error {
+	// Pause/unpause simulation on key-down edge.
 	if keyStates[ebiten.KeyP] == 0 {
 		simulationPaused = !simulationPaused
-
 	}
 
-	// if the F key is pressed, save the current simulation to a gif file.
+	// Export snapshot on key-down edge.
 	if keyStates[ebiten.KeyF] == 0 {
-		gifFileName := fmt.Sprintf("simulation-%d.gif", time.Now().Unix())
-		// TODO: Create a dialog box to get the file name.
-		// Save the simulation to the gif file.
-		if err := saveImage(simulationImage, gifFileName); err != nil {
+		if err := exportSnapshot(); err != nil {
 			return err
 		}
 	}
 
-	// If the R key is pressed, pause the simulation, set all
-	// pixels that belong to a wire to index 1, and reload the simulation.
+	// Reset wires on key-down edge.
 	if keyStates[ebiten.KeyR] == 0 {
-		simulationPaused = true
-		currentSimulation.Draw(simulationImage)
-		for _, wire := range currentSimulation.Circuit().Wires() {
-			for _, pixel := range wire.Pixels() {
-				simulationImage.SetColorIndex(pixel.X, pixel.Y, 1)
-			}
-		}
-		if err := reloadSimulation(); err != nil {
+		if err := resetSimulationToWireSeed(); err != nil {
 			return err
 		}
 	}
 
+	if keyStates[ebiten.KeyZ] == 0 {
+	}
+	
 	return nil
+}
+
+func exportSnapshot() error {
+	// Materialize current state into the palette image before saving.
+	currentSimulation.Draw(simulationImage)
+	gifFileName := fmt.Sprintf("simulation-%d.gif", time.Now().Unix())
+	return saveImage(simulationImage, gifFileName)
+}
+
+func resetSimulationToWireSeed() error {
+	simulationPaused = true
+
+	currentSimulation.Draw(simulationImage)
+	for _, wire := range currentSimulation.Circuit().Wires() {
+		for _, pixel := range wire.Pixels() {
+			simulationImage.SetColorIndex(pixel.X, pixel.Y, 1)
+		}
+	}
+
+	return reloadSimulation()
 }
 
 func drawMask(wire *simulation.Wire) image.Image {
