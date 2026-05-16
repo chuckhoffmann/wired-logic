@@ -14,6 +14,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/martinkirsche/wired-logic/simulation"
+
+	"github.com/sqweek/dialog"
 )
 
 var (
@@ -398,9 +400,16 @@ func applyHotkeys() error {
 	// Export snapshot on key-down edge.
 	if keyStates[ebiten.KeyF] == 0 {
 		if err := exportSnapshot(); err != nil {
-			return err
+			if errors.Is(err, dialog.ErrCancelled) {
+				// User cancelled the file save dialog, ignore the error.
+				return nil
+			} else {
+				return err
+			}
 		}
+
 	}
+	
 
 	// Reset wires on key-down edge.
 	if keyStates[ebiten.KeyR] == 0 {
@@ -419,7 +428,12 @@ func exportSnapshot() error {
 	// Materialize current state into the palette image before saving.
 	currentSimulation.Draw(simulationImage)
 	gifFileName := fmt.Sprintf("simulation-%s.gif", time.Now().Format("2006-01-02-150405"))
-	return saveImage(simulationImage, gifFileName)
+	filename, err := dialog.File().SetStartFile(gifFileName).Filter("GIF files", "gif").Save()
+	if err != nil {
+		return err
+	}
+
+	return saveImage(simulationImage, filename)
 }
 
 func resetSimulationToWireSeed() error {
