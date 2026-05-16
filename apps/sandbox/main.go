@@ -418,7 +418,6 @@ func applyHotkeys() error {
 func exportSnapshot() error {
 	// Materialize current state into the palette image before saving.
 	currentSimulation.Draw(simulationImage)
-	// Save the simulation image as a gif file with a stamp showing the current year, month, day, hour, minute, second. The file name is in the format "simulation-<timestamp>.gif".
 	gifFileName := fmt.Sprintf("simulation-%s.gif", time.Now().Format("2006-01-02-150405"))
 	return saveImage(simulationImage, gifFileName)
 }
