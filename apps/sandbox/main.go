@@ -319,27 +319,12 @@ func update(screen *ebiten.Image) error {
 	select {
 	case <-simulationTimer:
 		if !simulationPaused {
-			var newSimulation *simulation.Simulation
-			newSimulation = currentSimulation.Step()
-			// Draw the wires that have changed.
-			wires := currentSimulation.Circuit().Wires()
-			for i, wire := range wires {
-				oldCharge := currentSimulation.State(wire).Charge()
-				charge := newSimulation.State(wire).Charge()
-				if oldCharge == charge {
-					continue
-				}
-				position := wire.Bounds().Min
-				op := &ebiten.DrawImageOptions{}
-				op.GeoM.Translate(float64(position.X), float64(position.Y))
-				r, g, b, a := simulationImage.Palette[charge+1].RGBA()
-				op.ColorM.Scale(float64(r)/0xFFFF, float64(g)/0xFFFF, float64(b)/0xFFFF, float64(a)/0xFFFF)
-				if err := backgroundImage.DrawImage(wireImages[i], op); err != nil {
-					return err
-				}
+			var err error
+			currentSimulation, err = stepSimulationAndRedraw()
+			if err != nil {
+				return err
 			}
-			currentSimulation = newSimulation
-		} 
+		}
 
 	default:
 		//
@@ -354,6 +339,30 @@ func update(screen *ebiten.Image) error {
 	}
 
 	return nil
+}
+
+func stepSimulationAndRedraw() (*simulation.Simulation, error) {
+	var newSimulation *simulation.Simulation
+	newSimulation = currentSimulation.Step()
+	// Draw the wires that have changed.
+	wires := currentSimulation.Circuit().Wires()
+	for i, wire := range wires {
+		oldCharge := currentSimulation.State(wire).Charge()
+		charge := newSimulation.State(wire).Charge()
+		if oldCharge == charge {
+			continue
+		}
+		position := wire.Bounds().Min
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(position.X), float64(position.Y))
+		r, g, b, a := simulationImage.Palette[charge+1].RGBA()
+		op.ColorM.Scale(float64(r)/0xFFFF, float64(g)/0xFFFF, float64(b)/0xFFFF, float64(a)/0xFFFF)
+		if err := backgroundImage.DrawImage(wireImages[i], op); err != nil {
+			return nil, err
+		}
+	}
+
+	return newSimulation, nil
 }
 
 func applyHotkeys() error {
