@@ -60,19 +60,6 @@ const (
 	cursorBlinkMidpoint     = 64
 )
 
-func keyRepeatTriggered(pressCount int) bool {
-	if pressCount < 0 {
-		return false
-	}
-	if pressCount == 0 {
-		return true
-	}
-	if pressCount < cursorInitialDelayTicks {
-		return false
-	}
-	return (pressCount-cursorInitialDelayTicks)%cursorRepeatTicks == 0
-}
-
 func main() {
 
 	// Parse the command line flags and arguments.
@@ -90,7 +77,7 @@ func main() {
 	// Calculate the time between simulation steps.
 	simulationTimer = time.Tick(time.Second / time.Duration(config.speed))
 
-	// If a gif file name is supplied, create the simulation image from 
+	// If a gif file name is supplied, create the simulation image from
 	// the gif file. Otherwise, create a new simulation image.
 	if config.gifFileName != "" {
 		simulationImage, err = createSimulationImageFromGif(config.gifFileName)
@@ -113,52 +100,14 @@ func main() {
 	}
 }
 
-func createSimulationImageFromGif(filename string) (*image.Paletted, error) {
-	in, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("open gif %s: %w", filename, err)
-	}
-	defer in.Close()
-	gifImage, err := gif.DecodeAll(in)
-	if err != nil {
-		return nil, fmt.Errorf("decode gif %s: %w", filename, err)
-	}
-	if len(gifImage.Image) == 0 {
-		return nil, fmt.Errorf("gif %s contains no frames", filename)
-	}
-
-	firstFrame := gifImage.Image[0]
-	if len(firstFrame.Palette) > 0 {
-		firstFrame.Palette[0] = color.Transparent
-	}
-
-	return firstFrame, nil
-}
-
-func createNewSimulationImage(width, height int) (*image.Paletted, error) {
-	// Create a new palette.
-	p := color.Palette{
-		color.Black,
-		color.RGBA{0x88, 0, 0, 0xFF},
-		color.RGBA{0xFF, 0, 0, 0xFF},
-		color.RGBA{0xFF, 0x22, 0, 0xFF},
-		color.RGBA{0xFF, 0x44, 0, 0xFF},
-		color.RGBA{0xFF, 0x66, 0, 0xFF},
-		color.RGBA{0xFF, 0x88, 0, 0xFF},
-		color.RGBA{0xFF, 0xAA, 0, 0xFF},
-	}
-	return image.NewPaletted(image.Rect(0, 0, width, height), p), nil
-}
-
-func initializeCursor() {
-	var err error
-	// Create a 4x4 image for the cursor and fill it with white.
-	if cursorImage, err = ebiten.NewImage(4, 4, ebiten.FilterNearest); err != nil {
-		log.Fatal(err)
-	}
-	cursorImage.Fill(color.White)
-}
-
+// parseCommandLineArgs parses the command line flags and arguments and returns a Config struct. The flags are:
+// -speed: the simulation steps per second (default 15, must be between 1 and 60)
+// -scale: the pixel scale factor (default 16)
+// -width: the width of the simulation (default 64)
+// -height: the height of the simulation (default 64)
+//
+// The arguments are:
+// [0]: an optional gif file name to load as the initial simulation state. If no file name is provided, a new simulation image will be created with the specified width and height. The file must end with .gif and must exist.
 func parseCommandLineArgs() (Config, error) {
 	var config Config
 
@@ -197,13 +146,69 @@ func parseCommandLineArgs() (Config, error) {
 	return config, nil
 }
 
+// initializeCursor creates a 4x4 white image for the cursor. The cursor will be drawn at the mouse position and will blink by changing its alpha value over time.
+func initializeCursor() {
+	var err error
+	// Create a 4x4 image for the cursor and fill it with white.
+	if cursorImage, err = ebiten.NewImage(4, 4, ebiten.FilterNearest); err != nil {
+		log.Fatal(err)
+	}
+	cursorImage.Fill(color.White)
+}
+
+// createSimulationImageFromGif creates a simulation image from the first frame of the given gif file. 
+func createSimulationImageFromGif(filename string) (*image.Paletted, error) {
+	//
+	in, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("open gif %s: %w", filename, err)
+	}
+	defer in.Close()
+
+	gifImage, err := gif.DecodeAll(in)
+	if err != nil {
+		return nil, fmt.Errorf("decode gif %s: %w", filename, err)
+	}
+
+	if len(gifImage.Image) == 0 {
+		return nil, fmt.Errorf("gif %s contains no frames", filename)
+	}
+	// Get the first frame of the gif. If the first frame has a palette, set the first color to transparent. This allows the user to create a gif with a transparent background by setting the first color in the palette to transparent.
+	firstFrame := gifImage.Image[0]
+
+	if len(firstFrame.Palette) > 0 {
+		firstFrame.Palette[0] = color.Transparent
+	}
+
+	return firstFrame, nil
+}
+
+// createNewSimulationImage creates a new simulation image with the given width and height, and a predefined palette. The palette has 9 colors: transparent, black, and 7 shades from red to yellow. The image is initialized with all pixels set to transparent.
+func createNewSimulationImage(width, height int) (*image.Paletted, error) {
+	// Create a new palette.
+	p := color.Palette{
+		color.Black,
+		color.RGBA{0x88, 0, 0, 0xFF},
+		color.RGBA{0xFF, 0, 0, 0xFF},
+		color.RGBA{0xFF, 0x22, 0, 0xFF},
+		color.RGBA{0xFF, 0x44, 0, 0xFF},
+		color.RGBA{0xFF, 0x66, 0, 0xFF},
+		color.RGBA{0xFF, 0x88, 0, 0xFF},
+		color.RGBA{0xFF, 0xAA, 0, 0xFF},
+	}
+	return image.NewPaletted(image.Rect(0, 0, width, height), p), nil
+}
+
+// reloadSimulation creates a new simulation from the current simulation image and redraws the background and wire images. This is called when the user toggles a pixel or resets the simulation to the wire seed. It returns an error if any of the image operations fail.
 func reloadSimulation() error {
 	// If there is a change in the simulation image, create a new simulation.
 	currentSimulation = simulation.New(simulationImage)
 	currentSimulation.Draw(simulationImage)
+	
 	var err error
 	backgroundImage, err = ebiten.NewImageFromImage(simulationImage, ebiten.FilterNearest)
 	if err != nil {
+
 		log.Fatal(err)
 	}
 
@@ -226,6 +231,7 @@ func reloadSimulation() error {
 	return nil
 }
 
+// togglePixel toggles the pixel at the given position in the simulation image. If the pixel is currently transparent, it will be set to black (color index 1). If the pixel is currently black or any of the red shades (color index 1-8), it will be set to transparent (color index 0). After toggling the pixel, it calls reloadSimulation to update the simulation and redraw the images. It returns an error if any of the image operations fail.
 func togglePixel(position image.Point) error {
 	currentSimulation.Draw(simulationImage)
 	c := simulationImage.ColorIndexAt(position.X, position.Y)
@@ -249,6 +255,19 @@ func readKeys() {
 		keyStates[key]++
 
 	}
+}
+
+func keyRepeatTriggered(pressCount int) bool {
+	if pressCount < 0 {
+		return false
+	}
+	if pressCount == 0 {
+		return true
+	}
+	if pressCount < cursorInitialDelayTicks {
+		return false
+	}
+	return (pressCount-cursorInitialDelayTicks)%cursorRepeatTicks == 0
 }
 
 func handleCursor(screen *ebiten.Image) error {
@@ -352,6 +371,7 @@ func stepSimulationAndRedraw() (*simulation.Simulation, error) {
 		if oldCharge == charge {
 			continue
 		}
+		// Get the position of the wire and draw the corresponding wire image with the color corresponding to the new charge.
 		position := wire.Bounds().Min
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(position.X), float64(position.Y))
@@ -365,6 +385,10 @@ func stepSimulationAndRedraw() (*simulation.Simulation, error) {
 	return newSimulation, nil
 }
 
+// applyHotkeys checks the key states for the hotkeys and performs the corresponding actions. The hotkeys are:
+// - P: pause/unpause the simulation on key-down edge.
+// - F: export a snapshot of the current simulation state as a gif file on key-down edge.
+// - R: reset the simulation on key-down edge.	
 func applyHotkeys() error {
 	// Pause/unpause simulation on key-down edge.
 	if keyStates[ebiten.KeyP] == 0 {
@@ -394,7 +418,8 @@ func applyHotkeys() error {
 func exportSnapshot() error {
 	// Materialize current state into the palette image before saving.
 	currentSimulation.Draw(simulationImage)
-	gifFileName := fmt.Sprintf("simulation-%d.gif", time.Now().Unix())
+	// Save the simulation image as a gif file with a stamp showing the current year, month, day, hour, minute, second. The file name is in the format "simulation-<timestamp>.gif".
+	gifFileName := fmt.Sprintf("simulation-%s.gif", time.Now().Format("2006-01-02-150405"))
 	return saveImage(simulationImage, gifFileName)
 }
 
@@ -411,12 +436,14 @@ func resetSimulationToWireSeed() error {
 	return reloadSimulation()
 }
 
+// drawMask creates a mask image for the given wire. The mask is a white image with the same dimensions as the wire's bounding box, where the pixels corresponding to the wire's pixels are set to white and the rest are transparent. This mask is used to draw the wire on the background image with the correct color corresponding to its charge.
 func drawMask(wire *simulation.Wire) image.Image {
 	// Draw a mask for the wire.
 	bounds := image.Rect(0, 0, wire.Bounds().Dx(), wire.Bounds().Dy())
 	bounds = bounds.Union(image.Rect(0, 0, 4, 4))
 	position := wire.Bounds().Min
 	img := image.NewRGBA(bounds)
+	
 	white := color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
 	for _, pixel := range wire.Pixels() {
 		img.SetRGBA(pixel.X-position.X, pixel.Y-position.Y, white)
@@ -424,6 +451,7 @@ func drawMask(wire *simulation.Wire) image.Image {
 	return img
 }
 
+// saveImage saves the given image to a file with the given filename in gif format. It returns an error if any of the file operations fail.
 func saveImage(img image.Image, filename string) error {
 	f, err := os.Create(filename)
 	if err != nil {
