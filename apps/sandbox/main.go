@@ -327,7 +327,7 @@ func update(screen *ebiten.Image) error {
 		}
 
 	default:
-		//
+
 	}
 	// Draw the background image on the screen.
 	if err := screen.DrawImage(backgroundImage, &ebiten.DrawImageOptions{}); err != nil {
