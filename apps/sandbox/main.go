@@ -318,33 +318,33 @@ func update(screen *ebiten.Image) error {
 
 	select {
 	case <-simulationTimer:
-		var newSimulation *simulation.Simulation
 		if !simulationPaused {
+			var newSimulation *simulation.Simulation
 			newSimulation = currentSimulation.Step()
-		} else {
-			newSimulation = currentSimulation
-		}
-		// Draw the wires that have changed.
-		wires := currentSimulation.Circuit().Wires()
-		for i, wire := range wires {
-			oldCharge := currentSimulation.State(wire).Charge()
-			charge := newSimulation.State(wire).Charge()
-			if oldCharge == charge {
-				continue
+			// Draw the wires that have changed.
+			wires := currentSimulation.Circuit().Wires()
+			for i, wire := range wires {
+				oldCharge := currentSimulation.State(wire).Charge()
+				charge := newSimulation.State(wire).Charge()
+				if oldCharge == charge {
+					continue
+				}
+				position := wire.Bounds().Min
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Translate(float64(position.X), float64(position.Y))
+				r, g, b, a := simulationImage.Palette[charge+1].RGBA()
+				op.ColorM.Scale(float64(r)/0xFFFF, float64(g)/0xFFFF, float64(b)/0xFFFF, float64(a)/0xFFFF)
+				if err := backgroundImage.DrawImage(wireImages[i], op); err != nil {
+					return err
+				}
 			}
-			position := wire.Bounds().Min
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64(position.X), float64(position.Y))
-			r, g, b, a := simulationImage.Palette[charge+1].RGBA()
-			op.ColorM.Scale(float64(r)/0xFFFF, float64(g)/0xFFFF, float64(b)/0xFFFF, float64(a)/0xFFFF)
-			if err := backgroundImage.DrawImage(wireImages[i], op); err != nil {
-				return err
-			}
-		}
-		currentSimulation = newSimulation
+			currentSimulation = newSimulation
+		} 
+
 	default:
+		//
 	}
-	// Draw the background image.
+	// Draw the background image on the screen.
 	if err := screen.DrawImage(backgroundImage, &ebiten.DrawImageOptions{}); err != nil {
 		return err
 	}
@@ -378,7 +378,7 @@ func applyHotkeys() error {
 
 	if keyStates[ebiten.KeyZ] == 0 {
 	}
-	
+
 	return nil
 }
 
