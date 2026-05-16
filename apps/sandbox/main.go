@@ -90,8 +90,8 @@ func main() {
 	// Calculate the time between simulation steps.
 	simulationTimer = time.Tick(time.Second / time.Duration(config.speed))
 
-	// If a gif file name is supplied, create the simulation image from the gif file.
-	//  Otherwise, create a new simulation image.
+	// If a gif file name is supplied, create the simulation image from 
+	// the gif file. Otherwise, create a new simulation image.
 	if config.gifFileName != "" {
 		simulationImage, err = createSimulationImageFromGif(config.gifFileName)
 		if err != nil {
