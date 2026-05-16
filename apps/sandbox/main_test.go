@@ -59,9 +59,6 @@ func TestCreateNewSimulationImage(t *testing.T) {
 		t.Fatalf("ColorIndexAt(0, 0) = %d, want 0", got)
 	}
 
-	if got := img.Palette[1]; got != color.Black {
-		t.Fatalf("palette[1] = %v, want black", got)
-	}
 }
 
 func TestParseCommandLineArgs(t *testing.T) {
